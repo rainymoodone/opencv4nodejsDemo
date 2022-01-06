@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title><%= title %>></title>
+
+    <!--两张图片格式为左浮动，处在一行-->
+    <style type="text/css">
+        .InputOutput{
+            float: left;
+            margin: 10px;
+        }
+        .control {
+            padding-top: 30px;
+        }
+        /*.content {*/
+        /*    width: 300px;*/
+        /*    !*max-width: 400px;*!*/
+        /*    height: 400px;*/
+        /*}*/
+        .content {
+            width:500px;
+            height:400px;
+            border:1px solid black;
+            display: table-cell;
+            vertical-align: middle;
+        }
+        .content img  {
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+            margin: auto;
+        }
+    </style>
+</head>
+<body style="text-align: center">
+    <div style="width: 80%; padding-left: 10%">
+        <table border="1">
+            <tbody><tr>
+                <td class="content">
+                    <div><img src="" id="include-upload-image-show" ></div>
+                </td>
+                <td class="content">
+                    <div><img src="" id="include-upload-image-result-show"></div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="file" name="image" id="include-upload-image-file" style="display:none;">
+                    <button type="button" id="include-upload-image-btn">上传图片</button>
+                </td>
+                <td>
+                    <div class="caption">结果图</div>
+                </td>
+            </tr>
+            </tbody></table>
+    </div>
+
+    <div class="control"><button id="tryIt">上传处理</button></div>
+
+
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script type="text/javascript">
+
+		let changeImage = false;	// 是否需要上传文件
+		let uploadedImageData = "";	//已经图片信息
+		let imageFile;	// 需要上传的文件
+
+		$(function() {
+
+			$('#include-upload-image-btn').click(function() {
+				$('#include-upload-image-file').click()
+				//当图片选中后，会触发name=file文本的change事件
+				$('#include-upload-image-file').change(function() {
+
+					const filePath = $(this).val(),         //获取到input的value，里面是文件的路径
+						fileFormat = filePath.substring(filePath.lastIndexOf(".")).toLowerCase(),
+						src = window.URL.createObjectURL(this.files[0]); //转成可以在本地预览的格式
+
+					// 检查是否是图片
+					if( !fileFormat.match(/.png|.jpg|.jpeg/) ) {
+						alert('上传错误,文件格式必须为：png/jpg/jpeg');
+						return;
+					}
+					console.log('src: ' + src);
+					$('#include-upload-image-show').attr('src',src);
+					imageFile = this.files[0];
+					changeImage = true;
+				})
+			})
+		});
+
+		/*
+        * 显示图片
+        * @param
+        *  src: 图片地址
+        * */
+		function showImage(src) {
+			$("#include-upload-image-show").attr("src", src);
+		}
+
+		function showResultImage(src) {
+			$("#include-upload-image-result-show").attr("src", src);
+		}
+
+		/*
+        * 上传图片
+        * @param
+        *  path: 上传图片存储路径
+        *  callBack(imageData, error): 回调方法,
+        *       - imageData为图片数据，imageData.path为图片相对路径，imageData.url为图片全路径
+        *       - error 为上传图片错误信息
+        * */
+		function uploadImage(path, callBack) {
+			// 查看是否需要上传图片
+			if (changeImage) {
+				const formData = new FormData()
+				formData.append('image', imageFile)
+				formData.append('pathPre', path)
+				axios.post('/changeImage', formData, {
+					headers: {
+						'Content-Type': 'multipart/form-data'
+					}
+				}).then(res => {
+					uploadedImageData = res.data.data;
+					console.log(res)
+					if (callBack) {
+						callBack(res.data.data, null)
+					}
+				}).catch(cause => {
+					callBack(null, cause)
+				})
+			} else {
+				alert("请添加图片")
+			}
+		}
+
+		$(document).ready(function() {
+			$('#tryIt').click(function(){
+				// 上传图片
+				uploadImage("", function callBack(imageData, cause) {
+					if (cause) {
+						alert(cause)
+						return
+					}
+					if (imageData) {
+						console.log("before")
+						const time = new Date().getTime();
+						let url = `${imageData.url}?time=${time}`;
+						showResultImage(url)
+					}
+				});
+			});
+		});
+
+    </script>
+
+</body>
+</html>

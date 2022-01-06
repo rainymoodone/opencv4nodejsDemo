@@ -1,0 +1,82 @@
+<input type="file" name="image" id="include-upload-image-file" style="display:none;">
+<div><img src="" class="img-show" id="include-upload-image-show" width="200"></div>
+<button type="button" id="include-upload-image-btn">上传图片</button>
+
+<script type="text/javascript">
+
+    let changeImage = false;	// 是否需要上传文件
+	let uploadedImageData = "";	//已经图片信息
+	let imageFile;	// 需要上传的文件
+
+	$(function() {
+
+		$('#include-upload-image-btn').click(function() {
+			$('#include-upload-image-file').click()
+			//当图片选中后，会触发name=file文本的change事件
+			$('#include-upload-image-file').change(function() {
+
+				const filePath = $(this).val(),         //获取到input的value，里面是文件的路径
+					fileFormat = filePath.substring(filePath.lastIndexOf(".")).toLowerCase(),
+					src = window.URL.createObjectURL(this.files[0]); //转成可以在本地预览的格式
+
+				// 检查是否是图片
+				if( !fileFormat.match(/.png|.jpg|.jpeg/) ) {
+					alert('上传错误,文件格式必须为：png/jpg/jpeg');
+					return;
+				}
+				$('#include-upload-image-show').attr('src',src);
+				imageFile = this.files[0];
+				changeImage = true;
+			})
+		})
+	});
+
+	/*
+	* 显示图片
+	* @param
+	*  src: 图片地址
+	* */
+	function showImage(src) {
+		$("#include-upload-image-show").attr("src", src);
+	}
+
+	/*
+	* 上传图片
+	* @param
+	*  path: 上传图片存储路径
+	*  callBack(imageData, error): 回调方法,
+	*       - imageData为图片数据，imageData.path为图片相对路径，imageData.url为图片全路径
+	*       - error 为上传图片错误信息
+	* */
+	function uploadImage(path, callBack) {
+		// 查看是否需要上传图片
+		if (changeImage) {
+			const formData = new FormData()
+			formData.append('image', imageFile)
+			formData.append('pathPre', path)
+			axios.post('/webapp/uploadImage', formData, {
+				headers: {
+					'Content-Type': 'multipart/form-data'
+				}
+			}).then(res => {
+				uploadedImageData = res.data.data;
+				changeImage = false
+				console.log(res)
+                if (callBack) {
+					callBack(res.data.data, null)
+                }
+			}).catch(cause => {
+				callBack(null, cause)
+			})
+		} else if (uploadedImageData) {
+			if (uploadedImageData) {
+				callBack(uploadedImageData, null)
+			}
+		} else {
+			if (callBack) {
+				callBack(null, null)
+			}
+        }
+	}
+
+</script>
